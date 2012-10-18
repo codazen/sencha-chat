@@ -1,0 +1,169 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Test</title>
+		<meta charset="UTF-8">
+		<script type="text/javascript" src="jquery-1.8.2.min.js"></script>
+		<link type="text/css" href="styles.css" rel="stylesheet"/>
+	</head>
+	<body>
+		<div>
+			Username: <input name="username"/>
+		</div>
+		<div class="chat-container">
+			
+		</div>
+		<div>
+			<form>
+				<input name="chat-input"></input>
+				<div>
+					<button type="submit">Send</button>
+				</div>
+			</form>
+		</div>
+	
+		<script type="text/javascript">
+			//Global Chat Fields
+			var ChatClient = 
+			{
+				username: null,
+				lastUpdate: null,
+				chatColors: {},
+			};
+			
+			//Models
+			var Message = function (username, message, color)
+			{
+				this.username = username; 
+				this.message = message;
+				this.color = color
+			};
+			
+			//Functions
+			var printMessage = function (username, message, color)
+			{
+				var chatString = '<span style="color: ' + color + '">' + username + '</span>: ' + message;
+				$('.chat-container').append('<div>' + chatString + '<div>');
+			}
+			
+			//Random Color generator for more clear chatting
+			var getRandomColor = function() 
+			{
+				var letters = '0123456789ABCDEF'.split('');
+				var color = '#';
+				for (var i = 0; i < 6; i++ ) 
+				{
+					color += letters[Math.round(Math.random() * 15)];
+				}
+				
+				return color;
+			}
+			
+			//When update chat timer finishes, checks the server for new messages
+			var updateChatCallback = function ()
+			{
+				$.ajax({ 
+					url:'UpdateChat',
+					type:'GET',
+					data:
+					{
+						lastUpdate: ChatClient.lastUpdate
+					},
+					
+					success: function(response)
+					{
+						var update = eval('(' + response+ ')');
+						
+						ChatClient.lastUpdate = update.lastUpdate;
+						
+						for (var i = 0; i < update.newMessages.length; i++)
+						{
+							var message = update.newMessages[i];
+							
+							var chatContainer = $('.chat-container');
+							
+							var wasAtScrollHeight = chatContainer.prop('scrollTop') + chatContainer.height() === chatContainer.prop('scrollHeight');
+							
+							printMessage(message.username,message.message,message.color);
+							
+							//chat container scrolls down if user is at the bottom of the chat window
+							if (wasAtScrollHeight)
+							{
+								chatContainer.prop('scrollTop', chatContainer.prop('scrollHeight'))
+							}
+						}
+					} 
+				});
+				
+				startUpdateChatTimer();
+			}
+			
+			var startUpdateChatTimer = function ()
+			{
+				setTimeout(updateChatCallback,5000);
+			}
+			
+			
+			//Listeners
+			//
+			//Sets the username after the user selects one
+			$('input[name=username]').bind('blur',function(e)
+			{
+				if ($(this).val())
+				{
+					ChatClient.username = $(this).val();
+				}
+				
+				else
+				{
+					alert('Please enter a username');
+				}
+			});			
+			
+			//When a user submits a message, it is sent to the server
+			$('button').click(function(e)
+			{
+				e.preventDefault();
+				
+				if (ChatClient.username !== null && ChatClient.username.trim() !== '')
+				{
+					var chatInput = $('input[name=chat-input]');
+					
+					$.ajax({ 
+						url:'SendMessage',
+						type:'GET',
+						data:
+						{
+							message: JSON.stringify(new Message(ChatClient.username,chatInput.val(),ChatClient.chatColor))
+						},
+						success: function(success)
+						{
+							if (!success)
+							{
+								alert('Message Fail!');
+							}
+						} 
+					});
+					
+					chatInput.val('');
+				}
+				
+				else
+				{
+					alert('Please enter a username');
+				}
+			});
+			
+			//When document is ready start timer to start listening for new messages
+			$(document).ready(function ()
+			{
+				//Sets random color for the user 
+				ChatClient.chatColor = getRandomColor();
+				
+				//start timer
+				startUpdateChatTimer();
+			});
+			
+		</script>
+	</body>
+</html>
