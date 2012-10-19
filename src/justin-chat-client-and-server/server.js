@@ -47,6 +47,8 @@ app.get('/SendMessage',function(req, res)
 		
 		message.sentTime = new Date();
 		
+		delete message.id;
+		
 		chatMessages.push(message);
 	
 		res.send(true);
