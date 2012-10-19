@@ -64,6 +64,12 @@ app.get('/',function(req, res)
 	res.sendfile(__dirname + '/public/index.html');	
 });
 
+//Routes to index on Sencha
+app.get('/Sencha',function(req, res)
+{
+	res.sendfile(__dirname + '/public/sencha/index.html');	
+});
+
 app.listen(3000);
 
 console.log('Listening on port 3000');
